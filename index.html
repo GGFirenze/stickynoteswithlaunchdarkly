@@ -1,0 +1,298 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+   
+    
+<link rel="shortcut icon" type="x-icon" href="pixelcut-export copy.png">
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Sticky Notes</title>
+    <!-- LaunchDarkly JavaScript SDK -->
+    <script src="https://unpkg.com/launchdarkly-js-client-sdk@3"></script>
+    <style>
+        body {
+            font-family: 'Arial', sans-serif;
+            font-size: 16px;
+            background: url('pixelcut-export copy.png') no-repeat center center fixed;
+            background-size: cover;
+            background-color: rgba(255, 255, 255, 0.8);
+            margin: 0;
+            padding: 0;
+        }
+        .container {
+            display: flex;
+            justify-content: space-around;
+            padding: 80px 20px 20px;
+        }
+        .section {
+            width: 45%;
+            padding: 20px;
+            background: rgba(255, 255, 255, 0.8);
+            border-radius: 10px;
+            box-shadow: 0 0 10px rgba(0, 0, 0, 0.1);
+            height: 80vh;
+            overflow-y: auto;
+        }
+        .sticky-note {
+            background: yellow;
+            padding: 10px;
+            margin: 10px 0;
+            border-radius: 10px;
+            box-shadow: 0 0 5px rgba(0, 0, 0, 0.1);
+            position: relative;
+            cursor: move;
+        }
+        .sticky-note textarea {
+            width: 100%;
+            height: 100px;
+            resize: none;
+            border: none;
+            outline: none;
+            background: transparent;
+        }
+        .sticky-note .actions {
+            display: flex;
+            justify-content: space-between;
+            margin-top: 10px;
+        }
+        .sticky-note .actions button {
+            background: none;
+            border: none;
+            cursor: pointer;
+            font-size: 16px;
+            color: #333;
+        }
+        .create-note {
+            position: fixed;
+            top: 20px;
+            left: 2.5%;
+            background: #333;
+            color: white;
+            padding: 10px 20px;
+            border: none;
+            border-radius: 5px;
+            cursor: pointer;
+            font-size: 16px;
+        }
+    </style>
+</head>
+<body>
+    <button class="create-note" onclick="createNote()" id="hero-btn">Create Note</button>
+    <div class="container">
+        <div class="section" id="to-do">
+            <h2>To Do</h2>
+            <div id="to-do-notes"></div>
+        </div>
+        <div class="section" id="done">
+            <h2>Done</h2>
+            <div id="done-notes"></div>
+        </div>
+    </div>
+
+    <script>
+        // LaunchDarkly SDK Initialization
+        let ldClient;
+        
+        // Initialize LaunchDarkly client
+        function initializeLaunchDarkly() {
+            // Using your LaunchDarkly client-side ID directly (browser environment)
+            // In production, you would typically use environment-specific build processes
+            const clientSideID = '690e3e459ad3980991d7af37';
+            
+            // Set up the evaluation context
+            const context = {
+                kind: 'user',
+                key: 'sticky-notes-user-' + Date.now(),
+                name: 'Sticky Notes User',
+                custom: {
+                    application: 'sticky-notes-app',
+                    version: '1.0.0'
+                }
+            };
+
+            // Initialize the LaunchDarkly client
+            ldClient = LDClient.initialize(clientSideID, context);
+
+            // Handle SDK initialization events
+            ldClient.on('ready', () => {
+                console.log('LaunchDarkly SDK successfully initialized!');
+                
+                // Track initialization event to validate connectivity (LaunchDarkly setup requirement)
+                ldClient.track('690e3e459ad3980991d7af37');
+                
+                // Track additional custom event per requirements  
+                ldClient.track('sdk-initialized', { source: "cursor" });
+                
+                // Evaluate feature flags after initialization
+                evaluateFeatureFlags();
+            });
+
+            ldClient.on('failed', (error) => {
+                console.error('LaunchDarkly SDK failed to initialize:', error);
+            });
+
+            ldClient.on('change', () => {
+                console.log('Feature flag values changed');
+                evaluateFeatureFlags();
+            });
+        }
+
+        // Function to evaluate feature flags and apply them
+        function evaluateFeatureFlags() {
+            if (!ldClient) return;
+
+            // Example flag: enhanced-ui - enables enhanced styling
+            const enhancedUI = ldClient.variation('enhanced-ui', false);
+            
+            // Example flag: quick-actions - enables quick action buttons  
+            const quickActions = ldClient.variation('quick-actions', false);
+            
+            // Example flag: note-categories - enables note categorization
+            const noteCategories = ldClient.variation('note-categories', false);
+            
+            console.log('Feature flags evaluated:', {
+                enhancedUI,
+                quickActions, 
+                noteCategories
+            });
+
+            // Apply feature flag variations
+            applyUIEnhancements(enhancedUI);
+            toggleQuickActions(quickActions);
+            toggleNoteCategories(noteCategories);
+            
+            // Track flag evaluations
+            ldClient.track('flags-evaluated', {
+                source: "cursor",
+                flags: {
+                    'enhanced-ui': enhancedUI,
+                    'quick-actions': quickActions,
+                    'note-categories': noteCategories
+                }
+            });
+        }
+
+        // Apply UI enhancements based on feature flag
+        function applyUIEnhancements(enabled) {
+            const container = document.querySelector('.container');
+            if (enabled && container) {
+                container.style.background = 'linear-gradient(135deg, rgba(255,255,255,0.9), rgba(240,248,255,0.9))';
+                container.style.backdropFilter = 'blur(10px)';
+                console.log('Enhanced UI applied');
+            }
+        }
+
+        // Toggle quick action buttons
+        function toggleQuickActions(enabled) {
+            // Implementation would add/remove quick action buttons
+            if (enabled) {
+                console.log('Quick actions enabled');
+            } else {
+                console.log('Quick actions disabled');
+            }
+        }
+
+        // Toggle note categories feature
+        function toggleNoteCategories(enabled) {
+            // Implementation would add category selection to notes
+            if (enabled) {
+                console.log('Note categories enabled');
+            } else {
+                console.log('Note categories disabled');
+            }
+        }
+
+        // Initialize LaunchDarkly when page loads
+        document.addEventListener('DOMContentLoaded', initializeLaunchDarkly);
+
+        document.getElementById('hero-btn').addEventListener('click', function() {
+            amplitude.track('Create Note Clicked', {
+                button_name: "create_note",
+                source: "homepage"
+            });
+        });
+
+        function createNote() {
+            const note = document.createElement('div');
+            note.className = 'sticky-note';
+            note.innerHTML = `
+                <textarea placeholder="Write your note here..."></textarea>
+                <div class="actions">
+                    <button onclick="moveToDone(this)">Done</button>
+                    <button onclick="deleteNote(this)">Delete</button>
+                </div>
+            `;
+            document.getElementById('to-do-notes').appendChild(note);
+            makeDraggable(note);
+            
+            // Track note creation in LaunchDarkly
+            if (ldClient) {
+                ldClient.track('note-created', { 
+                    source: "cursor",
+                    action: "create_note",
+                    section: "to_do"
+                });
+            }
+        }
+
+        function moveToDone(button) {
+            const note = button.closest('.sticky-note');
+            document.getElementById('to-do-notes').removeChild(note);
+            document.getElementById('done-notes').appendChild(note);
+            button.remove(); 
+            
+            amplitude.track('Note Moved to Done', {
+                button_name: "done",
+                source: "sticky_note"
+            });
+            
+            // Track note completion in LaunchDarkly
+            if (ldClient) {
+                ldClient.track('note-completed', { 
+                    source: "cursor",
+                    action: "move_to_done",
+                    from_section: "to_do",
+                    to_section: "done"
+                });
+            }
+        }
+
+        function deleteNote(button) {
+            const note = button.closest('.sticky-note');
+            const parentSection = note.parentElement.id === 'done-notes' ? 'done' : 'to_do';
+            note.remove();
+            
+            amplitude.track('Note Deleted', {
+                button_name: "delete",
+                source: "sticky_note",
+                section: parentSection
+            });
+            
+            // Track note deletion in LaunchDarkly
+            if (ldClient) {
+                ldClient.track('note-deleted', { 
+                    source: "cursor",
+                    action: "delete_note",
+                    section: parentSection
+                });
+            }
+        }
+
+        function makeDraggable(element) {
+            element.draggable = true;
+            element.addEventListener('dragstart', (event) => {
+                event.dataTransfer.setData('text/plain', event.target.id);
+            });
+            element.addEventListener('dragover', (event) => {
+                event.preventDefault();
+            });
+            element.addEventListener('drop', (event) => {
+                event.preventDefault();
+                const data = event.dataTransfer.getData('text/plain');
+                const draggableElement = document.getElementById(data);
+                event.target.appendChild(draggableElement);
+            });
+        }
+    </script>
+</body>
+</html>
