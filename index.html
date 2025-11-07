@@ -3,7 +3,7 @@
 <head>
    
     
-<link rel="shortcut icon" type="x-icon" href="pixelcut-export copy.png">
+<link rel="shortcut icon" type="x-icon" href="/Users/giuliano.giannini/Desktop/Projects/Sticky Notes/pixelcut-export copy.png">
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>Sticky Notes</title>
@@ -13,7 +13,7 @@
         body {
             font-family: 'Arial', sans-serif;
             font-size: 16px;
-            background: url('pixelcut-export copy.png') no-repeat center center fixed;
+            background: url('/Users/giuliano.giannini/Desktop/Projects/Sticky Notes/pixelcut-export copy.png') no-repeat center center fixed;
             background-size: cover;
             background-color: rgba(255, 255, 255, 0.8);
             margin: 0;
@@ -78,6 +78,7 @@
 </head>
 <body>
     <button class="create-note" onclick="createNote()" id="hero-btn">Create Note</button>
+    <!-- <button class="create-note" onclick="validateLaunchDarkly()" id="validate-btn" style="left: 250px; background: #405cf5;">Validate LD</button> -->
     <div class="container">
         <div class="section" id="to-do">
             <h2>To Do</h2>
@@ -117,8 +118,16 @@
             ldClient.on('ready', () => {
                 console.log('LaunchDarkly SDK successfully initialized!');
                 
-                // Track initialization event to validate connectivity (LaunchDarkly setup requirement)
-                ldClient.track('690e3e459ad3980991d7af37');
+                // Track validation event that LaunchDarkly dashboard expects
+                ldClient.track('690e3e459ad3980991d7af36');
+                console.log('Sent validation track event: 690e3e459ad3980991d7af36');
+                
+                // Also try tracking with additional formats LaunchDarkly might expect
+                setTimeout(() => {
+                    ldClient.track('690e3e459ad3980991d7af36', {});
+                    ldClient.track('sdk-validation', { memberId: '690e3e459ad3980991d7af36' });
+                    console.log('Sent additional validation events');
+                }, 1000);
                 
                 // Track additional custom event per requirements  
                 ldClient.track('sdk-initialized', { source: "cursor" });
@@ -149,11 +158,36 @@
             
             // Example flag: note-categories - enables note categorization
             const noteCategories = ldClient.variation('note-categories', false);
+
+            // NEW FLAG: Create Note button color change
+            const flagKey = 'create-note-button-color';
+            const flagValue = ldClient.variation(flagKey, false);
+
+            if (flagValue) {
+                // Feature enabled: Change button to green color
+                const createButton = document.getElementById('hero-btn');
+                if (createButton) {
+                    createButton.style.background = '#28a745'; // Green
+                    createButton.style.borderColor = '#1e7e34';
+                    createButton.style.color = 'white';
+                    console.log('Create Note button color changed to green');
+                }
+            } else {
+                // Fallback behavior: Keep original dark color
+                const createButton = document.getElementById('hero-btn');
+                if (createButton) {
+                    createButton.style.background = '#333'; // Original dark
+                    createButton.style.borderColor = '#333';
+                    createButton.style.color = 'white';
+                    console.log('Create Note button using default dark color');
+                }
+            }
             
             console.log('Feature flags evaluated:', {
                 enhancedUI,
                 quickActions, 
-                noteCategories
+                noteCategories,
+                createNoteButtonColor: flagValue
             });
 
             // Apply feature flag variations
@@ -167,7 +201,8 @@
                 flags: {
                     'enhanced-ui': enhancedUI,
                     'quick-actions': quickActions,
-                    'note-categories': noteCategories
+                    'note-categories': noteCategories,
+                    'create-note-button-color': flagValue
                 }
             });
         }
@@ -199,6 +234,23 @@
                 console.log('Note categories enabled');
             } else {
                 console.log('Note categories disabled');
+            }
+        }
+
+        // Manual validation function
+        function validateLaunchDarkly() {
+            if (ldClient) {
+                ldClient.track('690e3e459ad3980991d7af36');
+                ldClient.track('690e3e459ad3980991d7af36', {});
+                ldClient.track('manual-validation', { 
+                    memberId: '690e3e459ad3980991d7af36',
+                    timestamp: Date.now(),
+                    source: "cursor"
+                });
+                console.log('Manual validation events sent!');
+                alert('Validation events sent to LaunchDarkly. Check your dashboard!');
+            } else {
+                alert('LaunchDarkly SDK not ready yet. Wait a moment and try again.');
             }
         }
 
